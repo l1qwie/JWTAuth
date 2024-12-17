@@ -44,7 +44,7 @@ func response(ctx *gin.Context, msg []byte, err error) {
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 	} else {
-		ctx.JSON(http.StatusOK, msg)
+		ctx.Data(http.StatusOK, "application/json", msg)
 	}
 }
 

@@ -4,3 +4,5 @@ CREATE TABLE Users (
     ip INET,
     refreshtoken BYTEA
 );
+
+CREATE INDEX ip_index ON Users USING BTREE (ip);

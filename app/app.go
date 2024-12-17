@@ -15,6 +15,7 @@ import (
 
 	"github.com/l1qwie/JWTAuth/app/database"
 	errh "github.com/l1qwie/JWTAuth/app/errorhandler"
+	"github.com/l1qwie/JWTAuth/app/logs"
 	"github.com/l1qwie/JWTAuth/app/types"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
@@ -67,7 +68,11 @@ func sendEmail(ip string) error {
 		m.SetBody("text/html", message)
 
 		d := gomail.NewDialer("smtp.gmail.com", 587, fromemail, "ycuw acml gnor qcir")
-		err = d.DialAndSend(m)
+		if err = d.DialAndSend(m); err != nil {
+			logs.HasDone("Email sending")
+		} else {
+			logs.HasntDone("Email sending")
+		}
 	}
 	return err
 }
@@ -75,6 +80,7 @@ func sendEmail(ip string) error {
 func isThereTheGUID(guid string) error {
 	ok, err := database.Conn.CheckGUID(guid)
 	if !ok && err == nil {
+		logs.UnknownParam("GUID")
 		err = errh.Code10()
 	}
 	return err
@@ -84,9 +90,15 @@ func newBothTokens(tokens *types.Tokens, userIP, guid string) ([]byte, error) {
 	var err error
 	var body []byte
 	if tokens.Access, err = newAccessToken(userIP); err == nil {
+		logs.HasDone("Access-Token")
 		if tokens.Refresh, err = newRefreshToken(guid, userIP); err == nil {
+			logs.HasDone("Refresh-Token")
 			body, err = json.Marshal(tokens)
+		} else {
+			logs.HasntDone("Refresh-Token")
 		}
+	} else {
+		logs.HasntDone("Access-Token")
 	}
 	return body, err
 }
@@ -101,9 +113,11 @@ func NewAccessAndRefreshTokens(guid, userIP string) ([]byte, error) {
 				body, err = newBothTokens(tokens, userIP, guid)
 			}
 		} else {
+			logs.IsntValid("IP")
 			err = errh.Code11()
 		}
 	} else {
+		logs.IsntValid("GUID")
 		err = errh.Code12()
 	}
 	return body, err
@@ -142,6 +156,7 @@ func findIP(token []byte) (net.IP, []byte, error) {
 	)
 	if ip, origtoken, ok = isIPv4(token); !ok {
 		if ip, origtoken, ok = isIPv6(token); !ok {
+			logs.ParameterIsRequired("an IP in the refresh-Token")
 			err = errh.Code13()
 		}
 	}
@@ -155,7 +170,7 @@ func checkRefreshToken(refreshToken, clientIP string) error {
 	var trueIp string
 	if token, err = base64.StdEncoding.DecodeString(refreshToken); err == nil {
 		if ip, originaltoken, err = findIP(token); err == nil {
-			if !ip.Equal(net.IP(clientIP)) {
+			if ip.String() != clientIP {
 				if err = database.Conn.RewriteIP(ip.String(), clientIP); err == nil {
 					trueIp = clientIP
 					err = sendEmail(trueIp)
@@ -186,9 +201,11 @@ func RefreshAction(ip, reftoken string) ([]byte, error) {
 				}
 			}
 		} else {
+			logs.IsntValid("Refresh-Token")
 			err = errh.Code14()
 		}
 	} else {
+		logs.IsntValid("IP")
 		err = errh.Code11()
 	}
 	return body, err

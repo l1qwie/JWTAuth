@@ -5,10 +5,9 @@ import (
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/l1qwie/JWTAuth/api"
 	"github.com/l1qwie/JWTAuth/app/logs"
+	"github.com/l1qwie/JWTAuth/tests"
 )
 
 func callserver(method, url, key string, body io.Reader, t *testing.T, withheader bool) *http.Response {
@@ -61,6 +60,6 @@ func TestRefreshOK(t *testing.T) {
 
 func init() {
 	logs.SetDebug()
-	go api.StartAPI()
-	time.Sleep(time.Second)
+	tests.PutEnvVal()
+	tests.StartAPI()
 }

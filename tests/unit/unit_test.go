@@ -3,12 +3,13 @@ package unit
 import (
 	"encoding/base64"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/l1qwie/JWTAuth/app"
 	"github.com/l1qwie/JWTAuth/app/database"
+	"github.com/l1qwie/JWTAuth/app/logs"
 	"github.com/l1qwie/JWTAuth/app/types"
+	"github.com/l1qwie/JWTAuth/tests"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -122,22 +123,6 @@ func TestRefreshAction(t *testing.T) {
 }
 
 func init() {
-	if err := os.Setenv("host_db", "localhost"); err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("port_db", "3333"); err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("user_db", "postgres"); err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("password_db", "postgres"); err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("dbname_db", "postgres"); err != nil {
-		panic(err)
-	}
-	if err := os.Setenv("sslmode_db", "disable"); err != nil {
-		panic(err)
-	}
+	logs.SetDebug()
+	tests.PutEnvVal()
 }
