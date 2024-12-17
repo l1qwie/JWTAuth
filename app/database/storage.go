@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 
+	errh "github.com/l1qwie/JWTAuth/app/errorhandler"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
+
+var Conn *Connection
 
 type Connection struct {
 	db *sql.DB
@@ -36,9 +38,9 @@ func Connect() (*Connection, error) {
 	return con, err
 }
 
-// Delete all of clients in the table Clients
-func (c *Connection) DeleteCliets() {
-	query := "DELETE FROM Clients"
+// Delete all of users in the table Users
+func (c *Connection) DeleteUsers() {
+	query := "DELETE FROM Users"
 	_, err := c.db.Exec(query)
 	if err != nil {
 		panic(err)
@@ -48,84 +50,102 @@ func (c *Connection) DeleteCliets() {
 // Get a refresh token from the database by a specific id
 func (c *Connection) GetRefreshToken(ip string) ([]byte, error) {
 	var token []byte
-	query := "SELECT refreshtoken FROM Clients WHERE ip = $1"
-	err := c.db.QueryRow(query, ip).Scan(&token)
+	var err error
+	if ip != "" {
+		query := "SELECT refreshtoken FROM Users WHERE ip = $1"
+		err = c.db.QueryRow(query, ip).Scan(&token)
+	} else {
+		err = errh.Code01()
+	}
 	return token, err
 }
 
 func (c *Connection) SaveRefreshToken(token []byte, guid string, onceagain *bool) error {
-	query := "UPDATE Clients SET refreshtoken = $1 WHERE guid = $2"
-	_, err := c.db.Exec(query, token, guid)
-	if pqErr, ok := err.(*pq.Error); ok {
-		if pqErr.Code != "23505" {
+	var err error
+	if token != nil && guid != "" && onceagain != nil {
+		query := "UPDATE Users SET refreshtoken = $1 WHERE guid = $2"
+		_, err = c.db.Exec(query, token, guid)
+		if pqErr, ok := err.(*pq.Error); ok {
+			if pqErr.Code != "23505" {
+				*onceagain = false
+			}
+		} else {
 			*onceagain = false
 		}
 	} else {
-		*onceagain = false
+		err = errh.Code01()
 	}
 	return err
 }
 
-// Create a new clients only for tests
-func (c *Connection) CreateNewClient(email, ip string) int {
-	var id int
-	query := "INSERT INTO Clients (email, ip) VALUES ($1, $2)"
-	_, err := c.db.Exec(query, email, ip)
-	if err != nil {
-		panic(err)
-	}
-	query = "SELECT id FROM Clients WHERE email = $1"
-	err = c.db.QueryRow(query, email).Scan(&id)
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
-
-func (c *Connection) CheckID(guid string) (bool, error) {
+func (c *Connection) CheckGUID(guid string) (bool, error) {
 	var count int
 	var err error
 	if guid != "" {
-		query := "SELECT COUNT(*) FROM Clients WHERE guid = $1"
+		query := "SELECT COUNT(*) FROM Users WHERE guid = $1"
 		err = c.db.QueryRow(query, guid).Scan(&count)
+	} else {
+		err = errh.Code01()
 	}
-	return count == 1, err
-}
-
-// Check an ip by a specific id. If the ip by the id exists, you'll get true, if vice versa - false
-func (c *Connection) CheckIP(id int, ip string) (bool, error) {
-	var count int
-	query := "SELECT COUNT(*) FROM Clients WHERE id = $1 AND ip = $2"
-	err := c.db.QueryRow(query, id, ip).Scan(&count)
 	return count == 1, err
 }
 
 // Get an email from the database
 func (c *Connection) SelectEmail(ip string) (string, error) {
 	var email string
-	query := "SELECT email FROM Clients WHERE ip = $1"
-	err := c.db.QueryRow(query, ip).Scan(&email)
+	var err error
+	if ip != "" {
+		query := "SELECT email FROM Users WHERE ip = $1"
+		err = c.db.QueryRow(query, ip).Scan(&email)
+	} else {
+		err = errh.Code01()
+	}
 	return email, err
 }
 
 // Create a client for getting better user experience (only for a real using)
-func (c *Connection) CreateMokData() {
-	query := "INSERT INTO Clients (email, ip) VALUES ('example@example.com', '213.136.11.188')"
-	_, err := c.db.Exec(query)
-	if err != nil {
-		panic(err)
+func (c *Connection) CreateMokData(guid, ip string) error {
+	var err error
+	if guid != "" && ip != "" {
+		query := "INSERT INTO Users (guid, email, ip) VALUES ($1, 'example@example.com', $2)"
+		_, err = c.db.Exec(query, guid, ip)
+	} else {
+		err = errh.Code01()
 	}
+	return err
 }
 
 func (c *Connection) RewriteIP(oldIp, newIp string) error {
-	query := "UPDATE Clients SET ip = %1 WHERE ip = %2"
-	_, err := c.db.Exec(query, newIp, oldIp)
+	var err error
+	if oldIp != "" && newIp != "" {
+		query := "UPDATE Users SET ip = $1 WHERE ip = $2"
+		_, err = c.db.Exec(query, newIp, oldIp)
+	} else {
+		err = errh.Code01()
+	}
 	return err
 }
 
 func (c *Connection) GetGUID(ip string) (string, error) {
 	var guid string
-	query := "SELECT guid FROM Clients WHERE ip = %1"
-	err := c.db.QueryRow(query, ip).Scan(&guid)
+	var err error
+	if ip != "" {
+		query := "SELECT guid FROM Users WHERE ip = $1"
+		err = c.db.QueryRow(query, ip).Scan(&guid)
+	} else {
+		err = errh.Code01()
+	}
 	return guid, err
+}
+
+func (c *Connection) IsThereRefreshToken(guid, ip string) (bool, error) {
+	var res int
+	var err error
+	if guid != "" && ip != "" {
+		query := "SELECT COUNT(*) FROM Users WHERE guid = $1 AND ip = $2 AND refreshtoken IS NOT NULL"
+		err = c.db.QueryRow(query, guid, ip).Scan(&res)
+	} else {
+		err = errh.Code01()
+	}
+	return res != 0, err
 }

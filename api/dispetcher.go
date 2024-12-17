@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/l1qwie/JWTAuth/app"
@@ -15,21 +14,16 @@ type server struct {
 	router *gin.Engine
 }
 
-func code500() error {
+func code400() error {
 	err := new(types.Err)
 	err.Code = http.StatusBadRequest
 	err.Msg = "invalid query parameters"
 	return err
 }
 
-func isValidGUID(guid string) bool {
-	r := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$")
-	return r.MatchString(guid)
-}
-
 func newConnection() {
 	var err error
-	types.Conn, err = database.Connect()
+	database.Conn, err = database.Connect()
 	if err != nil {
 		panic(err)
 	}
@@ -57,24 +51,21 @@ func response(ctx *gin.Context, msg []byte, err error) {
 func loginAction(ctx *gin.Context) {
 	var err error
 	var body []byte
-	guid := ctx.Param("id")
+	guid := ctx.Query("id")
+	justcall := ctx.Query("justacall")
 	if guid != "" {
-		if isValidGUID(guid) {
-			// app logic
+		if justcall != "true" {
 			body, err = app.NewAccessAndRefreshTokens(guid, ctx.ClientIP())
-		} else {
-			logs.ParameterIsRequired("GUID")
-			err = code500()
 		}
 	} else {
 		logs.ParameterIsRequired("id")
-		err = code500()
+		err = code400()
 	}
 	response(ctx, body, err)
 }
 
 func (s *server) login() {
-	path := "/login/:id"
+	path := "/login"
 	s.router.GET(path, loginAction)
 	logs.StartPoint(path, "GET")
 }
@@ -82,12 +73,15 @@ func (s *server) login() {
 func refreshAction(ctx *gin.Context) {
 	var err error
 	var body []byte
+	justcall := ctx.Query("justacall")
 	token := ctx.Request.Header["Refresh-Token"][0]
 	if token != "" {
-		// app logic
+		if justcall != "true" {
+			body, err = app.RefreshAction(ctx.ClientIP(), token)
+		}
 	} else {
 		logs.ParameterIsRequired("Refresh-Token")
-		err = code500()
+		err = code400()
 	}
 	response(ctx, body, err)
 }
@@ -102,4 +96,6 @@ func StartAPI() {
 	s := configurations()
 	s.login()
 	s.refresh()
+
+	s.router.Run(":8080")
 }

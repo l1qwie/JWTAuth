@@ -2,12 +2,7 @@ package types
 
 import (
 	"fmt"
-
-	"github.com/l1qwie/JWTAuth/app/database"
 )
-
-var SymKey []byte
-var Conn *database.Connection
 
 type Tokens struct {
 	Access  string `json:"access_jwt_key"`

@@ -1,5 +1,5 @@
 networks:
-  medods-auth:
+  auth-net:
     external: true
 
 
@@ -19,18 +19,18 @@ services:
     ports:
       - 3333:5432
     networks:
-      - medods-auth
-    container_name: medods-auth-postgres
+      - auth-net
+    container_name: auth-postgres-container
 
   app:
-    image: medods-auth-app
+    image: auth
     ports:
       - 8022:8020
     networks:
-      - medods-auth
+      - auth-net
     depends_on:
       - postgresql
-    container_name: medods-auth-app
+    container_name: auth-container
     environment:
       JWT_SECRET: "jwt_secret_example"
       host_db: "medods-auth-postgres"
