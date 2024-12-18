@@ -15,8 +15,6 @@ type Connection struct {
 	db *sql.DB
 }
 
-// Create a new connection to the database according to the env-values
-// You might get an error if the conection is failed
 func Connect() (*Connection, error) {
 	con := new(Connection)
 
@@ -38,7 +36,6 @@ func Connect() (*Connection, error) {
 	return con, err
 }
 
-// Delete all of users in the table Users
 func (c *Connection) DeleteUsers() {
 	query := "DELETE FROM Users"
 	_, err := c.db.Exec(query)
@@ -47,7 +44,6 @@ func (c *Connection) DeleteUsers() {
 	}
 }
 
-// Get a refresh token from the database by a specific id
 func (c *Connection) GetRefreshToken(ip string) ([]byte, error) {
 	var token []byte
 	var err error
@@ -90,7 +86,6 @@ func (c *Connection) CheckGUID(guid string) (bool, error) {
 	return count == 1, err
 }
 
-// Get an email from the database
 func (c *Connection) SelectEmail(ip string) (string, error) {
 	var email string
 	var err error
@@ -103,7 +98,6 @@ func (c *Connection) SelectEmail(ip string) (string, error) {
 	return email, err
 }
 
-// Create a client for getting better user experience (only for a real using)
 func (c *Connection) CreateMokData(guid, ip string) error {
 	var err error
 	if guid != "" && ip != "" {
