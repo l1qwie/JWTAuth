@@ -35,7 +35,7 @@ The task I've been woking on: https://medods.notion.site/Test-task-BackDev-62350
 Ta-daa! The app is working!
 
 #### A few recommendations
-1. If you want to use this app to make sure everything works well, you're supposted to create a row about your device in the database. Especially there columns: guid, email and ip. To be done with it, do this:
+1. If you want to use this app to make sure everything works well, you're supposted to create a row about your device in the database. Especially these columns: guid, email and ip. To be done with it, do this:
     ```bash
     make get.into
 2. If you want to run tests (my own tests), you could do it, only if you run the database container not in the just created network. Do the following with great confidence:
